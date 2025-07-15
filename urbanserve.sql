@@ -35,3 +35,10 @@ CREATE TABLE bookings (
     FOREIGN KEY (provider_id) REFERENCES users(id),
     FOREIGN KEY (service_id) REFERENCES services(id)
 );
+INSERT INTO users (name, email, password, role)
+VALUES (
+  'Admin User',
+  'admin@urbanserve.com',
+  '$2y$10$WzXKnNoOBD9akyaGbWxCKuQ.0nMLsMNGqPkoPYtxzHdAPlckTbSkq', -- password: admin123
+  'admin'
+);
