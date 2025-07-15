@@ -4,6 +4,15 @@ if ($_SESSION['user']['role'] !== 'admin') {
     header("Location: login.php");
     exit;
 }
+
+// Include database connection
+include 'db.php';
+
+// Get stats for dashboard
+$users_count = $conn->query("SELECT COUNT(*) as count FROM users")->fetch_assoc()['count'];
+$providers_count = $conn->query("SELECT COUNT(*) as count FROM users WHERE role = 'provider'")->fetch_assoc()['count'];
+$services_count = $conn->query("SELECT COUNT(*) as count FROM services")->fetch_assoc()['count'];
+$bookings_count = $conn->query("SELECT COUNT(*) as count FROM bookings")->fetch_assoc()['count'];
 ?>
 
 <!DOCTYPE html>
@@ -13,6 +22,7 @@ if ($_SESSION['user']['role'] !== 'admin') {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard | UrbanServe</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
             --primary: #f76d2b;
@@ -41,11 +51,12 @@ if ($_SESSION['user']['role'] !== 'admin') {
             line-height: 1.6;
         }
 
-        .admin-container {
+        .dashboard-container {
             display: flex;
             min-height: 100vh;
         }
 
+        /* Sidebar Styles */
         .sidebar {
             width: 250px;
             background-color: var(--secondary);
@@ -56,11 +67,22 @@ if ($_SESSION['user']['role'] !== 'admin') {
         .sidebar-header {
             padding: 0 20px 20px;
             border-bottom: 1px solid rgba(255,255,255,0.1);
+            text-align: center;
         }
 
-        .sidebar-header h2 {
+        .profile-img {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin: 0 auto 10px;
+            display: block;
+            border: 3px solid var(--primary);
+        }
+
+        .sidebar-header h3 {
             color: var(--white);
-            font-size: 20px;
+            margin-bottom: 5px;
         }
 
         .sidebar-header p {
@@ -91,6 +113,7 @@ if ($_SESSION['user']['role'] !== 'admin') {
             text-align: center;
         }
 
+        /* Main Content Styles */
         .main-content {
             flex: 1;
             padding: 30px;
@@ -110,35 +133,42 @@ if ($_SESSION['user']['role'] !== 'admin') {
             color: var(--secondary);
         }
 
-        .user-info {
+        .user-actions {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 15px;
         }
 
-        .user-info img {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            object-fit: cover;
-        }
-
-        .logout-btn {
-            background-color: var(--primary);
-            color: white;
-            border: none;
+        .btn {
             padding: 8px 15px;
             border-radius: 5px;
-            cursor: pointer;
             text-decoration: none;
             font-size: 14px;
-            transition: background-color 0.3s;
+            transition: all 0.3s;
+            cursor: pointer;
+            border: none;
         }
 
-        .logout-btn:hover {
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
             background-color: var(--primary-dark);
         }
 
+        .btn-outline {
+            background-color: transparent;
+            border: 1px solid var(--primary);
+            color: var(--primary);
+        }
+
+        .btn-outline:hover {
+            background-color: rgba(247, 109, 43, 0.1);
+        }
+
+        /* Dashboard Cards */
         .dashboard-cards {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
@@ -165,39 +195,103 @@ if ($_SESSION['user']['role'] !== 'admin') {
             color: var(--secondary);
         }
 
-        .recent-activity {
+        /* Recent Activity Section */
+        .recent-section {
             background-color: var(--white);
             border-radius: 8px;
-            padding: 20px;
+            padding: 30px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            margin-bottom: 30px;
         }
 
-        .recent-activity h2 {
-            font-size: 18px;
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
             margin-bottom: 20px;
-            padding-bottom: 10px;
+            padding-bottom: 15px;
             border-bottom: 1px solid var(--border);
         }
 
+        .section-header h2 {
+            font-size: 20px;
+        }
+
+        /* Tables */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .data-table th, .data-table td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .data-table th {
+            background-color: var(--accent);
+            color: var(--secondary);
+            font-weight: 600;
+        }
+
+        .data-table tr:hover {
+            background-color: rgba(247, 109, 43, 0.05);
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .status-active {
+            background-color: rgba(56, 161, 105, 0.1);
+            color: var(--success);
+        }
+
+        .status-pending {
+            background-color: rgba(237, 137, 54, 0.1);
+            color: #ed8936;
+        }
+
+        .action-link {
+            color: var(--primary);
+            text-decoration: none;
+            margin-right: 10px;
+        }
+
+        .action-link:hover {
+            text-decoration: underline;
+        }
+
         @media (max-width: 768px) {
-            .admin-container {
+            .dashboard-container {
                 flex-direction: column;
             }
             
             .sidebar {
                 width: 100%;
             }
+            
+            .data-table {
+                display: block;
+                overflow-x: auto;
+            }
         }
     </style>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
-    <div class="admin-container">
+    <div class="dashboard-container">
         <!-- Sidebar Navigation -->
         <div class="sidebar">
             <div class="sidebar-header">
-                <h2>UrbanServe</h2>
-                <p>Admin Dashboard</p>
+                <img src="https://ui-avatars.com/api/?name=<?= urlencode($_SESSION['user']['name']) ?>&background=f76d2b&color=fff" 
+                     alt="Profile" class="profile-img">
+                <h3><?= htmlspecialchars($_SESSION['user']['name']) ?></h3>
+                <p>Administrator</p>
             </div>
             
             <div class="nav-menu">
@@ -205,7 +299,10 @@ if ($_SESSION['user']['role'] !== 'admin') {
                     <i class="fas fa-tachometer-alt"></i> Dashboard
                 </a>
                 <a href="users.php" class="nav-item">
-                    <i class="fas fa-users"></i> Users
+                    <i class="fas fa-users"></i> Manage Users
+                </a>
+                <a href="providers.php" class="nav-item">
+                    <i class="fas fa-user-tie"></i> Service Providers
                 </a>
                 <a href="services.php" class="nav-item">
                     <i class="fas fa-concierge-bell"></i> Services
@@ -213,11 +310,17 @@ if ($_SESSION['user']['role'] !== 'admin') {
                 <a href="bookings.php" class="nav-item">
                     <i class="fas fa-calendar-check"></i> Bookings
                 </a>
-                <a href="payments.php" class="nav-item">
-                    <i class="fas fa-credit-card"></i> Payments
+                <a href="transactions.php" class="nav-item">
+                    <i class="fas fa-credit-card"></i> Transactions
+                </a>
+                <a href="reports.php" class="nav-item">
+                    <i class="fas fa-chart-bar"></i> Reports
                 </a>
                 <a href="settings.php" class="nav-item">
                     <i class="fas fa-cog"></i> Settings
+                </a>
+                <a href="logout.php" class="nav-item">
+                    <i class="fas fa-sign-out-alt"></i> Logout
                 </a>
             </div>
         </div>
@@ -225,42 +328,132 @@ if ($_SESSION['user']['role'] !== 'admin') {
         <!-- Main Content Area -->
         <div class="main-content">
             <div class="header">
-                <h1>Dashboard Overview</h1>
-                <div class="user-info">
-                    <span>Welcome, <?php echo htmlspecialchars($_SESSION['user']['name']); ?></span>
-                    <a href="logout.php" class="logout-btn">
+                <h1>Admin Dashboard</h1>
+                <div class="user-actions">
+                    <span>Welcome, <?= htmlspecialchars($_SESSION['user']['name']) ?></span>
+                    <a href="logout.php" class="btn btn-outline">
                         <i class="fas fa-sign-out-alt"></i> Logout
                     </a>
                 </div>
             </div>
 
-            <!-- Dashboard Cards -->
+            <!-- Dashboard Stats -->
             <div class="dashboard-cards">
                 <div class="card">
                     <h3>Total Users</h3>
-                    <p>1,248</p>
+                    <p><?= $users_count ?></p>
                 </div>
                 <div class="card">
-                    <h3>Active Services</h3>
-                    <p>42</p>
+                    <h3>Service Providers</h3>
+                    <p><?= $providers_count ?></p>
                 </div>
                 <div class="card">
-                    <h3>Today's Bookings</h3>
-                    <p>18</p>
+                    <h3>Services Offered</h3>
+                    <p><?= $services_count ?></p>
                 </div>
                 <div class="card">
-                    <h3>Revenue</h3>
-                    <p>₹84,500</p>
+                    <h3>Total Bookings</h3>
+                    <p><?= $bookings_count ?></p>
                 </div>
             </div>
 
-            <!-- Recent Activity Section -->
-            <div class="recent-activity">
-                <h2>Recent Activity</h2>
-                <p>Your admin dashboard content will go here...</p>
-                <!-- You can add tables, charts, or other admin features here -->
+            <!-- Recent Users Section -->
+            <div class="recent-section">
+                <div class="section-header">
+                    <h2>Recent Users</h2>
+                    <a href="users.php" class="btn btn-primary">
+                        <i class="fas fa-eye"></i> View All
+                    </a>
+                </div>
+                
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Role</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php
+                        $recent_users = $conn->query("SELECT * FROM users ORDER BY created_at DESC LIMIT 5");
+                        while ($user = $recent_users->fetch_assoc()):
+                        ?>
+                        <tr>
+                            <td><?= htmlspecialchars($user['name']) ?></td>
+                            <td><?= htmlspecialchars($user['email']) ?></td>
+                            <td><?= ucfirst(htmlspecialchars($user['role'])) ?></td>
+                            <td>
+                                <span class="status-badge status-active">Active</span>
+                            </td>
+                            <td>
+                                <a href="edit_user.php?id=<?= $user['id'] ?>" class="action-link">
+                                    <i class="fas fa-edit"></i> Edit
+                                </a>
+                                <a href="delete_user.php?id=<?= $user['id'] ?>" class="action-link" onclick="return confirm('Are you sure?')">
+                                    <i class="fas fa-trash"></i> Delete
+                                </a>
+                            </td>
+                        </tr>
+                        <?php endwhile; ?>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Recent Bookings Section -->
+            <div class="recent-section">
+                <div class="section-header">
+                    <h2>Recent Bookings</h2>
+                    <a href="bookings.php" class="btn btn-primary">
+                        <i class="fas fa-eye"></i> View All
+                    </a>
+                </div>
+                
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Booking ID</th>
+                            <th>Service</th>
+                            <th>Customer</th>
+                            <th>Date</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php
+                        $recent_bookings = $conn->query("SELECT b.*, s.name as service_name, u.name as customer_name 
+                                                         FROM bookings b
+                                                         JOIN services s ON b.service_id = s.id
+                                                         JOIN users u ON b.user_id = u.id
+                                                         ORDER BY b.booking_date DESC LIMIT 5");
+                        while ($booking = $recent_bookings->fetch_assoc()):
+                        ?>
+                        <tr>
+                            <td>#<?= $booking['id'] ?></td>
+                            <td><?= htmlspecialchars($booking['service_name']) ?></td>
+                            <td><?= htmlspecialchars($booking['customer_name']) ?></td>
+                            <td><?= date('M d, Y', strtotime($booking['booking_date'])) ?></td>
+                            <td>
+                                <span class="status-badge <?= $booking['status'] === 'completed' ? 'status-active' : 'status-pending' ?>">
+                                    <?= ucfirst($booking['status']) ?>
+                                </span>
+                            </td>
+                            <td>
+                                <a href="view_booking.php?id=<?= $booking['id'] ?>" class="action-link">
+                                    <i class="fas fa-eye"></i> View
+                                </a>
+                                <a href="edit_booking.php?id=<?= $booking['id'] ?>" class="action-link">
+                                    <i class="fas fa-edit"></i> Edit
+                                </a>
+                            </td>
+                        </tr>
+                        <?php endwhile; ?>
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
 </body>
-</html>
