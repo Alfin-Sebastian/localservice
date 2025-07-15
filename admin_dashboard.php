@@ -322,7 +322,10 @@ $bookings_count = $conn->query("SELECT COUNT(*) as count FROM bookings")->fetch_
                 <a href="logout.php" class="nav-item">
                     <i class="fas fa-sign-out-alt"></i> Logout
                 </a>
-            </div>
+            <a href="index.php" class="nav-item">
+                    <i class="fas fa-sign-out-alt"></i> Home
+            </a>
+</div>
         </div>
 
         <!-- Main Content Area -->
